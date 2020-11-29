@@ -36,10 +36,11 @@ _Min_Stack_Size = 0x400 ;	/* required amount of stack */
 /* Memories definition */
 MEMORY
 {
- SRAM    (xrw)   : ORIGIN = 0x20000000,    LENGTH = 192
- RAM     (xrw)   : ORIGIN = 0x200000C0,    LENGTH = 8K - 192
-FLASH (rx)      : ORIGIN = 0x8001000, LENGTH = 27K
-EEPROM (rx)     : ORIGIN = ORIGIN(FLASH) + LENGTH(FLASH) LENGTH = 1K
+SRAM    (xrw)   : ORIGIN = 0x20000000,    LENGTH = 192
+RAM     (xrw)   : ORIGIN = 0x200000C0,    LENGTH = 8K - 192
+FLASH (rx)      : ORIGIN = 0x8001000, LENGTH = 4K
+BOOTLOADER_FLASH (rx)      : ORIGIN = 0x8002000, LENGTH = 23K
+EEPROM (rx)     : ORIGIN = ORIGIN(BOOTLOADER_FLASH) + LENGTH(BOOTLOADER_FLASH) LENGTH = 1K
 }
 
 /* Sections */
@@ -121,6 +122,12 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
     . = ALIGN(4);
   } >FLASH
+
+  /* Put the pre-compiled boot loader into the image */
+  .bootloader :
+  {
+  	KEEP(*(.bootloader_raw*))
+  } >BOOTLOADER_FLASH
 
   /* Used by the startup to initialize data */
   _sidata = LOADADDR(.data);
