@@ -1,0 +1,3 @@
+[submodule "bootloader"]
+	path = bootloader
+	url = https://github.com/AlkaMotors/AM32_Bootloader_F051.git
