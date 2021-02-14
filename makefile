@@ -1,5 +1,5 @@
-CC := arm-none-eabi-gcc
-CP := arm-none-eabi-objcopy
+CC = $(ARM_SDK_PREFIX)gcc
+CP = $(ARM_SDK_PREFIX)objcopy
 MCU := -mcpu=cortex-m0 -mthumb
 LDSCRIPT := STM32F051K6TX_FLASH.ld
 LDSCRIPT_COMBINED := STM32F051K6TX_FLASH_combined.ld
@@ -35,11 +35,24 @@ CFLAGS += -D$(TARGET)
 CFLAGS += -MMD -MP -MF $(@:%.bin=%.d)
 
 TARGETS := PA2 PB4
+
 CFLAGS += -D__bootloader_path__='"bootloader/BOOTLOADER_$(TARGET).bin"'
 TARGET_PREFIX := BOOTLOADER_UPDATER_
 
+# Working directories
+ROOT := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
+
+# Build tools, so we all share the same versions
+# import macros common to all supported build systems
+include $(ROOT)/make/system-id.mk
+
+# configure some directories that are relative to wherever ROOT_DIR is located
+TOOLS_DIR ?= $(ROOT)/tools
+DL_DIR := $(ROOT)/downloads
+
 .PHONY : clean all
 all : $(TARGETS)
+
 clean :
 	rm -f Src/*.o
 
@@ -47,9 +60,20 @@ $(TARGETS) :
 	$(MAKE) TARGET=$@ $(TARGET_PREFIX)$@.bin
 
 $(TARGETS:%=$(TARGET_PREFIX)%.bin) : clean build_bootloader $(OBJ)
+	echo $(CC)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET_PREFIX)$(TARGET).elf $(OBJ)
 	$(CP) -O binary $(TARGET_PREFIX)$(TARGET).elf $(TARGET_PREFIX)$(TARGET).bin
 	$(CP) $(TARGET_PREFIX)$(TARGET).elf -O ihex  $(TARGET_PREFIX)$(TARGET).hex
 
 build_bootloader :
-	cd bootloader && $(MAKE) $(TARGET)
+	cd bootloader && ARM_SDK_PREFIX=../$(ARM_SDK_PREFIX) $(MAKE) $(TARGET)
+
+# mkdirs
+$(DL_DIR):
+	mkdir -p $@
+
+$(TOOLS_DIR):
+	mkdir -p $@
+
+# include the tools makefile
+include $(ROOT)/make/tools.mk
