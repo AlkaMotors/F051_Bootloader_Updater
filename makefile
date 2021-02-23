@@ -36,7 +36,8 @@ CFLAGS += -MMD -MP -MF $(@:%.bin=%.d)
 
 TARGETS := PA2 PB4
 
-CFLAGS += -D__bootloader_path__='"bootloader/BOOTLOADER_$(TARGET).bin"'
+BOOTLOADER_VERSION := $(shell cd bootloader && ARM_SDK_PREFIX=../$(ARM_SDK_PREFIX) $(MAKE) -s version)
+CFLAGS += -D__bootloader_path__='"bootloader/BOOTLOADER_$(TARGET)_$(BOOTLOADER_VERSION).bin"'
 TARGET_PREFIX := BOOTLOADER_UPDATER_
 
 # Working directories
@@ -60,10 +61,9 @@ $(TARGETS) :
 	$(MAKE) TARGET=$@ $(TARGET_PREFIX)$@.bin
 
 $(TARGETS:%=$(TARGET_PREFIX)%.bin) : clean build_bootloader $(OBJ)
-	echo $(CC)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET_PREFIX)$(TARGET).elf $(OBJ)
-	$(CP) -O binary $(TARGET_PREFIX)$(TARGET).elf $(TARGET_PREFIX)$(TARGET).bin
-	$(CP) $(TARGET_PREFIX)$(TARGET).elf -O ihex  $(TARGET_PREFIX)$(TARGET).hex
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET_PREFIX)$(TARGET)_$(BOOTLOADER_VERSION).elf $(OBJ)
+	$(CP) -O binary $(TARGET_PREFIX)$(TARGET)_$(BOOTLOADER_VERSION).elf $(TARGET_PREFIX)$(TARGET)_$(BOOTLOADER_VERSION).bin
+	$(CP) $(TARGET_PREFIX)$(TARGET)_$(BOOTLOADER_VERSION).elf -O ihex  $(TARGET_PREFIX)$(TARGET)_$(BOOTLOADER_VERSION).hex
 
 build_bootloader :
 	cd bootloader && ARM_SDK_PREFIX=../$(ARM_SDK_PREFIX) $(MAKE) $(TARGET)
