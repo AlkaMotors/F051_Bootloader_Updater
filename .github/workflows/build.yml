@@ -1,0 +1,83 @@
+name: Build AM32 F051 Bootloader Updater
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v1
+
+      - name: Pull Submodule
+        run: git submodule update --init
+
+      - name: Install ARM SDK
+        run: make arm_sdk_install
+
+      - name: Get GitHub Build Number (ENV)
+        id: get_buildno
+        run: echo "GITHUBBUILDNUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Get Pull Request Number
+        id: get_pullno
+        run: echo "PULL_NUMBER=$(echo "$GITHUB_REF" | awk -F / '{print $3}')" >> $GITHUB_ENV
+        if: startsWith(github.ref, 'refs/pull/')
+
+      - name: Make artifact name
+        id: make_artifactname
+        run: |
+          ARTIFACT_NAME="AM32-F051-Bootloader-Updater-${{ github.run_number }}"
+          echo "${ARTIFACT_NAME}"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+      - name: Build All Targets
+        run: make all
+
+      - name: Move PA2 BIN
+        uses: canastro/copy-file-action@master
+        with:
+          source: "BOOTLOADER_UPDATER_PA2.bin"
+          target: "make/BOOTLOADER_UPDATER_PA2.bin"
+
+      - name: Move PA2 HEX
+        uses: canastro/copy-file-action@master
+        with:
+          source: "BOOTLOADER_UPDATER_PA2.hex"
+          target: "make/BOOTLOADER_UPDATER_PA2.hex"
+
+      - name: Move PB4 BIN
+        uses: canastro/copy-file-action@master
+        with:
+          source: "BOOTLOADER_UPDATER_PB4.bin"
+          target: "make/BOOTLOADER_UPDATER_PB4.bin"          
+
+      - name: Move PB4 HEX
+        uses: canastro/copy-file-action@master
+        with:
+          source: "BOOTLOADER_UPDATER_PB4.hex"
+          target: "make/BOOTLOADER_UPDATER_PB4.hex"                
+
+      - name: Upload Bin Files
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ARTIFACT_NAME }}-BIN
+          path: make/*.bin
+
+      - name: Upload Hex Files
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ARTIFACT_NAME }}-HEX
+          path: make/*.hex
